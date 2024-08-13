@@ -1,14 +1,41 @@
-import React, { useState, useEffect } from "react";
-
+import React, { useEffect, useState } from "react";
+import { useLazyGetSummaryQuery } from "../services/articleApi";
 import { copy, linkIcon, loader, tick } from "../assets";
 
 function Demo() {
   const [article, setArticle] = useState({
     url: "",
-    summry: "",
+    summary: "",
   });
+  const [getSummary, { error, isFetching }] = useLazyGetSummaryQuery();
+  const [allArticles, setAllArticles] = useState([]);
 
-  const handleSubmit = async function (e) {};
+  useEffect(() => {
+    const articlesFromLocalStorage = JSON.parse(
+      localStorage.getItem("articles")
+    );
+
+    if (articlesFromLocalStorage) {
+      setAllArticles(articlesFromLocalStorage);
+    }
+  }, []);
+
+  const handleSubmit = async function (e) {
+    e.preventDefault();
+
+    const { data } = await getSummary({ articleUrl: article.url });
+    console.log(data);
+
+    if (data?.summary) {
+      const newArticle = { ...article, summary: data.summary };
+      const updateAllArticles = [newArticle, ...allArticles];
+
+      setArticle(newArticle);
+      setAllArticles(updateAllArticles);
+
+      localStorage.setItem("articles", JSON.stringify(updateAllArticles));
+    }
+  };
 
   return (
     <section className="mt-16 w-full max-w-xl" id="demo">
@@ -26,10 +53,9 @@ function Demo() {
           <input
             type="url"
             placeholder="Paste the article link"
-            value=""
             onChange={(e) => setArticle({ ...article, url: e.target.value })}
-            required
             className="url_input peer"
+            required
           />
           <button
             type="submit"
